@@ -29,13 +29,13 @@ def setstoneX(i):
     else:
         setstoneO(int(input("設置可能な座標を選択してください: ")))
 
-def judge():
-    for i in range(0, 3, 7):
+def judge(BOARD):
+    for i in [0, 3, 6]:
         if (BOARD[i] == 1) and (BOARD[i+1] == 1) and (BOARD[i+2] == 1):
             return 1
         elif (BOARD[i] == 2) and (BOARD[i+1] == 2) and (BOARD[i+2] == 2):
             return 2
-    for i in range(0, 1, 2):
+    for i in [0, 1, 2]:
         if (BOARD[i] == 1) and (BOARD[i+3] == 1) and (BOARD[i+6] == 1):
             return 1
         elif (BOARD[i] == 2) and (BOARD[i+3] == 2) and (BOARD[i+6] == 2):
@@ -58,10 +58,24 @@ def judge():
 
 def cpu():
     select_list = []
+    return_ = None
+    BOARD_copy = BOARD.copy()
     for i in range(len(BOARD)):
         if BOARD[i] == 0:
             select_list.append(i)
-    return select_list[random.randrange(len(select_list))]
+    return_ = select_list[random.randrange(len(select_list))]
+    for i in select_list:
+        BOARD_copy[i] = 1
+        if judge(BOARD_copy) == 1:
+            return_ = i
+        BOARD_copy[i] = 0
+    for i in select_list:
+        BOARD_copy[i] = 2
+        if judge(BOARD_copy) == 2:
+            return_ = i
+        BOARD_copy[i] = 0
+    
+    return return_
 
 
 class genom:
@@ -76,6 +90,9 @@ class genom:
     
     def setEvalution(self, evalution):
         self.evalution = evalution
+    
+    def GetEvalution(self):
+        return self.evalution
 
 NN_INPUT = 9
 NN_OUTPUT = 9
@@ -84,8 +101,8 @@ W1_LENGTH = NN_INPUT*NN_HIDDEN
 W2_LENGTH = NN_HIDDEN*NN_OUTPUT
 GENOM_LENGTH = W1_LENGTH + W2_LENGTH + NN_HIDDEN + NN_OUTPUT
 B_LENGTH = NN_OUTPUT + NN_HIDDEN
-MAX_GENOM_LIST = 500
-SELECT_GENOM = 100
+MAX_GENOM_LIST = 100
+SELECT_GENOM = 30
 INDIVIDUAL_MUTATTION = 0.1
 GENOM_MUTATION = 0.1
 MAX_GENERATION = 100
@@ -99,21 +116,26 @@ def create_genom(length):
     return genom(genom_list, 0)
 
 def evalution(ga):
-    result = game(ga)
+    result = ga.GetEvalution()
+    y = game(ga)
+    result += y
     return result
 
+
 def game(ga):
-    while(judge() == 0):
+    trouble = 0
+    while(judge(BOARD) == 0):
+        trouble += 1
         setstoneO(predict(ga, BOARD))
-        judge_ = judge()
+        judge_ = judge(BOARD)
         if judge_ == 1:
             return 1
         elif judge_ == 3:
             return 0
         setstoneX(cpu())
-        judge_ = judge()
+        judge_ = judge(BOARD)
         if judge_ == 2:
-            return -1
+            return -3
         elif judge_ == 3:
             return 0
 
@@ -168,9 +190,8 @@ def crossover(ga_one, ga_second):
 
 def next_generation_geno_create(ga, ga_elite, ga_progeny):
     next_generation_geno = sorted(ga, reverse=False, key=lambda u: u.evalution)
-    for _ in range(0, len(ga_elite) + len(ga_progeny)):
+    for _ in range(0, len(ga_progeny)):
         next_generation_geno.pop(0)
-    next_generation_geno.extend(ga_elite)
     next_generation_geno.extend(ga_progeny)
     return next_generation_geno
 
@@ -197,8 +218,10 @@ if __name__ == '__main__':
     
     for count_ in range(MAX_GENERATION):
         for i in range(MAX_GENOM_LIST):
-            BOARD = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-            current_generation_individual_group[i].setEvalution(evalution(current_generation_individual_group[i]))
+            current_generation_individual_group[i].evalution = 0
+            for t in range(10):
+                BOARD = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                current_generation_individual_group[i].setEvalution(evalution(current_generation_individual_group[i]))
 
         elite_genes = select(current_generation_individual_group, SELECT_GENOM)
         progeny_gene = []
@@ -206,14 +229,33 @@ if __name__ == '__main__':
             progeny_gene.extend(crossover(elite_genes[i - 1], elite_genes[i]))
         
         next_generation_individual_group = next_generation_geno_create(current_generation_individual_group, elite_genes, progeny_gene)
-        # next_generation_individual_group = mutation(next_generation_individual_group)
+        next_generation_individual_group = mutation(next_generation_individual_group)
 
+        current_generation_individual_group = sorted(current_generation_individual_group, reverse=True, key=lambda u: u.evalution)
         fits = [i.evalution for i in current_generation_individual_group]
-        avg_ = sum(fits) / len(fits)
+        win_ = 0
+        defate_ = 0
+        draw_ = 0
+        for i in fits:
+            if i > 0:
+                win_ += 1
+            elif i == 0:
+                draw_ += 1
+            elif i < 0:
+                defate_ += 1 
+
+        # win_ = fits.count(1)
+        # defate_ = fits.count(-1)
+        # draw_ = fits.count(0)
+        # avg_ = sum(fits) / len(fits)
 
         print ("-----第{}世代の結果-----".format(count_))
-        print("勝率: {}".format(avg_))
+        print(fits)
+        print("勝利数: {}".format(win_))
+        print("敗北数: {}".format(defate_))
+        print("引き分け数: {}".format(draw_))
+        # print("勝率: {}".format(avg_))
 
         current_generation_individual_group = next_generation_individual_group
         
-    print(current_generation_individual_group[0].genom_list)    
+    print(current_generation_individual_group[0].genom_list)
