@@ -48,12 +48,14 @@ def judge(BOARD):
         return 1
     elif (BOARD[2] == 2) and (BOARD[4] == 2) and (BOARD[6] == 2):
         return 2
+
     judge = True
     for i in range(len(BOARD)):
         if BOARD[i] == 0:
             judge = False
     if judge:
         return 3
+
     return 0
 
 def cpu():
@@ -74,6 +76,7 @@ def cpu():
         if judge(BOARD_copy) == 2:
             return_ = i
         BOARD_copy[i] = 0
+
     
     return return_
 
@@ -101,11 +104,11 @@ W1_LENGTH = NN_INPUT*NN_HIDDEN
 W2_LENGTH = NN_HIDDEN*NN_OUTPUT
 GENOM_LENGTH = W1_LENGTH + W2_LENGTH + NN_HIDDEN + NN_OUTPUT
 B_LENGTH = NN_OUTPUT + NN_HIDDEN
-MAX_GENOM_LIST = 100
-SELECT_GENOM = 30
+MAX_GENOM_LIST = 500
+SELECT_GENOM = 50
 INDIVIDUAL_MUTATTION = 0.1
 GENOM_MUTATION = 0.1
-MAX_GENERATION = 100
+MAX_GENERATION = 50
 
 def create_genom(length):
     genom_list = []
@@ -129,13 +132,15 @@ def game(ga):
         setstoneO(predict(ga, BOARD))
         judge_ = judge(BOARD)
         if judge_ == 1:
+            if BOARD[4] == 1:
+                return 2
             return 1
         elif judge_ == 3:
             return 0
         setstoneX(cpu())
         judge_ = judge(BOARD)
         if judge_ == 2:
-            return -3
+            return -100
         elif judge_ == 3:
             return 0
 
